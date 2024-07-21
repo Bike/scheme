@@ -56,6 +56,14 @@ enum Object {
     Boolean(bool),
 }
 
+#[derive(Debug)]
+enum ReadError {
+    // These are only used to dump to debug print,
+    // so rustc whines about them being unused.
+    #[allow(unused)] Parse(pest::error::Error<Rule>),
+    #[allow(unused)] Fixnum(std::num::ParseIntError),
+}
+
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -79,48 +87,57 @@ fn cons(car: Box<Object>, cdr: Box<Object>) -> Object {
     Object::Cons { car: car, cdr: cdr }
 }
 
-fn read(input: &str) -> Object {
+fn read(input: &str) -> Result<Object, ReadError> {
     let parse = SexpParser::parse(Rule::sexp, input);
     match parse {
         Ok(mut p) => { read_inner(p.next().unwrap()) }
-        Err(_e) => { panic!("Failed to parse"); }
+        Err(e) => { Err(ReadError::Parse(e)) }
     }
 }
 
-fn read_list(mut pairs: pest::iterators::Pairs<Rule>) -> Object {
+fn read_list(mut pairs: pest::iterators::Pairs<Rule>) -> Result<Object, ReadError> {
     match pairs.next() {
-        None => { Object::Null },
-        Some(p) => { cons(Box::new(read_inner(p)), Box::new(read_list(pairs))) },
+        None => { Ok(Object::Null) },
+        Some(p) => {
+            Ok(cons(Box::new(read_inner(p)?), Box::new(read_list(pairs)?)))
+        }
     }
 }
 
 fn read_dotted_list(first: Object, mut pairs: pest::iterators::Pairs<Rule>)
-                    -> Object {
+                    -> Result<Object, ReadError> {
     match pairs.next() {
-        None => { first }
+        None => { Ok(first) }
         Some(p) => {
             match p.as_rule() {
                 // Skip over the dot. Since we've already iterated past it
-                // this should halt.
+                // this should always halt.
                 Rule::consing_dot => { read_dotted_list(first, pairs) }
-                _other => { cons(Box::new(first),
-                                 Box::new(read_dotted_list(read_inner(p), pairs))) }
+                _other => {
+                    Ok(cons(Box::new(first),
+                            Box::new(read_dotted_list(read_inner(p)?, pairs)?)))
+                }
             }
         }
     }
 }
 
-fn read_inner(parse: pest::iterators::Pair<Rule>) -> Object {
+fn read_inner(parse: pest::iterators::Pair<Rule>) -> Result<Object, ReadError> {
     match parse.as_rule() {
-        Rule::symbol => { Object::Symbol(String::from(parse.as_str())) }
-        Rule::integer => { Object::Fixnum(parse.as_str().parse().unwrap()) }
-        Rule::boolean => { Object::Boolean(parse.as_str() == "#t") }
+        Rule::symbol => { Ok(Object::Symbol(String::from(parse.as_str()))) }
+        Rule::integer => {
+            match parse.as_str().parse() {
+                Ok(i) => { Ok(Object::Fixnum(i)) }
+                Err(e) => { Err(ReadError::Fixnum(e)) }
+            }
+        }
+        Rule::boolean => { Ok(Object::Boolean(parse.as_str() == "#t")) }
         Rule::proper_list => { read_list(parse.into_inner()) }
         Rule::dotted_list => {
             let mut pairs = parse.into_inner();
             match pairs.next() {
                 None => { panic!("Dotted list with no elements"); }
-                Some(p) => { read_dotted_list(read_inner(p), pairs) }
+                Some(p) => { Ok(read_dotted_list(read_inner(p)?, pairs)?) }
             }
         }
         _unknown_term => { panic!("Can't read this thing"); }
@@ -135,7 +152,10 @@ fn main() {
         io::stdin()
             .read_line(&mut input)
             .expect("Failed to read line");
-        println!("{}", read(&input));
+        match read(&input) {
+            Ok(o) => { println!("{o}"); }
+            Err(e) => { println!("Read error! {e:?}"); }
+        }
         /*
         let parse = SexpParser::parse(Rule::sexp, &read);
         match parse {
