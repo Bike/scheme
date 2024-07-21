@@ -74,8 +74,8 @@ fn augment(env: &ObjP, lambda_list: &ObjP, values: &ObjP) -> EvalResult {
                 // Here we assume the lambda list has a symbol in its car.
                 // This could be checked at expr construction time.
                 // (Will I be too lazy to do so? Probably.)
-                match lcdr.borrow() {
-                    Object::Cons { car: ref vcar, cdr: ref vcdr } => {
+                match vs.borrow() {
+                    Object::Cons { car: vcar, cdr: vcdr } => {
                         augment_aux(oll, ovs, lcdr, vcdr, &acons(lcar, vcar, env))
                     }
                     _ => { Err(EvalError::NotEnoughArgs(oll.clone(), ovs.clone())) }

@@ -76,6 +76,12 @@ fn fif(ll: &ObjP, args: &ObjP, env: &ObjP) -> EvalResult {
     }
 }
 
+fn flambda(ll: &ObjP, args: &ObjP, env: &ObjP) -> EvalResult {
+    let (ll, body) = args2(ll, args)?;
+    // As prophecied, I do not properly check the validity of the lambda list here.
+    Ok(ObjP::new(Object::Expr { form: body, lambda_list: ll, env: env.clone() }))
+}
+
 fn list1(arg0: &ObjP) -> ObjP { cons(arg0, &ObjP::new(Object::Null)) }
 fn list2(arg0: &ObjP, arg1: &ObjP) -> ObjP {
     cons(arg0, &cons(arg1, &ObjP::new(Object::Null)))
@@ -103,8 +109,13 @@ pub fn ground() -> ObjP {
     let condition_n = intern("condition");
     let then_n = intern("then");
     let else_n = intern("else");
+    let lambda_n = intern("lambda");
+    let ll_n = intern("lambda-list");
+    let body_n = intern("body");
     let fpairs = [(&if_n, ObjP::new(Object::Fsubr(list3(&condition_n, &then_n, &else_n),
-                                                  fif)))];
+                                                  fif))),
+                  (&lambda_n, ObjP::new(Object::Fsubr(list2(&ll_n, &body_n),
+                                                      flambda)))];
     for (name, fsubr) in fpairs {
         env = acons(name, &fsubr, &env)
     }
