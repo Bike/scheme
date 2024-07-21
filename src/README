@@ -1,0 +1,11 @@
+It's your run of the mill half-assed Scheme. Nothing to see here. Wrote this to start learning Rust.
+
+Supported:
+
+* Integers, but with no valid operations
+* `if` and `eq?`
+* abstraction (i.e. `lambda`)
+
+And that's it.
+
+No garbage collector; just uses `Rc`. Figuring out how to do that is the next major hurdle but I probably won't do it in this repo.
