@@ -1,7 +1,7 @@
 use pest::Parser;
 use pest_derive::Parser;
 
-use crate::objects::{Object, ObjP, cons};
+use crate::objects::{ObjP, cons, nil, make_symbol, make_fixnum, make_bool};
 
 #[derive(Parser)]
 #[grammar = "sexp.pest"]
@@ -71,7 +71,7 @@ pub fn read(input: &str) -> Result<ObjP, ReadError> {
 
 fn read_list(mut pairs: pest::iterators::Pairs<Rule>) -> Result<ObjP, ReadError> {
     match pairs.next() {
-        None => { Ok(ObjP::new(Object::Null)) },
+        None => { Ok(nil()) },
         Some(p) => {
             Ok(cons(&read_inner(p)?, &read_list(pairs)?))
         }
@@ -98,11 +98,9 @@ fn read_dotted_list(first: ObjP, mut pairs: pest::iterators::Pairs<Rule>)
 
 fn read_inner(parse: pest::iterators::Pair<Rule>) -> Result<ObjP, ReadError> {
     match parse.as_rule() {
-        Rule::symbol => {
-            Ok(ObjP::new(Object::Symbol(String::from(parse.as_str()))))
-        }
-        Rule::integer => { Ok(ObjP::new(Object::Fixnum(parse.as_str().parse()?))) }
-        Rule::boolean => { Ok(ObjP::new(Object::Boolean(parse.as_str() == "#t"))) }
+        Rule::symbol => { Ok(make_symbol(parse.as_str())) }
+        Rule::integer => { Ok(make_fixnum(parse.as_str().parse()?)) }
+        Rule::boolean => { Ok(make_bool(parse.as_str() == "#t")) }
         Rule::proper_list => { read_list(parse.into_inner()) }
         Rule::dotted_list => {
             let mut pairs = parse.into_inner();

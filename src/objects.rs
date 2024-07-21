@@ -37,7 +37,21 @@ pub enum Object {
     Expr { form: ObjP, lambda_list: ObjP, env: ObjP },
 }
 
-pub type ObjP = Rc<Object>;
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub struct ObjP {
+    object: Rc<Object>,
+}
+
+impl ObjP {
+    pub fn unwrap(&self) -> &Object {
+        self.object.borrow()
+    }
+    pub fn new(o : Object) -> Self {
+        Self {
+            object: Rc::new(o)
+        }
+    }
+}
 
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -49,15 +63,20 @@ impl fmt::Display for Object {
                 if *t { write!(f, "#t") } else { write!(f, "#f") }
             }
             Object::Cons {car, cdr} => {
-                match cdr.borrow() {
-                    Object::Null => { write!(f, "({})", *car) }
-                    other => { write!(f, "({} . {})", *car, other) }
+                match cdr.unwrap() {
+                    Object::Null => { write!(f, "({})", car.unwrap()) }
+                    other => { write!(f, "({} . {})", car.unwrap(), other) }
                 }
             }
             Object::Subr(..) => { write!(f, "#<SUBR>") }
             Object::Fsubr(..) => { write!(f, "#<FSUBR>") }
             Object::Expr{..} => { write!(f, "#<EXPR>") }
         }
+    }
+}
+impl fmt::Display for ObjP {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.unwrap().fmt(f)
     }
 }
 
@@ -72,4 +91,20 @@ pub fn cons(car: &ObjP, cdr: &ObjP) -> ObjP {
 
 pub fn acons(key: &ObjP, val: &ObjP, alist: &ObjP) -> ObjP {
     cons(&cons(key, val), alist)
+}
+
+pub fn nil() -> ObjP {
+    ObjP::new(Object::Null)
+}
+
+pub fn make_symbol(name: &str) -> ObjP {
+    ObjP::new(Object::Symbol(String::from(name)))
+}
+
+pub fn make_fixnum(i: i64) -> ObjP {
+    ObjP::new(Object::Fixnum(i))
+}
+
+pub fn make_bool(b: bool) -> ObjP {
+    ObjP::new(Object::Boolean(b))
 }
