@@ -8,6 +8,7 @@ WHITESPACE = _{ WHITE_SPACE }
 COMMENT = _{ "#|" ~ (COMMENT | (!("|#" | "#|") ~ ANY))* ~ "|#" }
 atom = _{ symbol | integer | boolean }
 // terminals
-symbol = @{ LETTER ~ (LETTER | DASH_PUNCTUATION | NUMBER)* }
+symbol = @{ constituent ~ (constituent | NUMBER)* }
+constituent = _{ LETTER | DASH_PUNCTUATION | "!" | "%" | "&" | "*" | "?" | "@"}
 integer = @{ "-"? ~ ASCII_DIGIT+ }
 boolean = @{ "#f" | "#t" }

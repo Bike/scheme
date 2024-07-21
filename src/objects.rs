@@ -11,6 +11,7 @@ pub enum EvalError {
     #[allow(unused)] DottedArgs(ObjP, ObjP),
     #[allow(unused)] NotCombiner(ObjP),
     #[allow(unused)] NotCons(ObjP),
+    #[allow(unused)] NotBoolean(ObjP),
 }
 pub type EvalResult = Result<ObjP, EvalError>;
 
