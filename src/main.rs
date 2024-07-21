@@ -4,9 +4,10 @@ use std::io::Write;
 mod objects;
 mod reader;
 mod eval;
+mod ground;
 
 fn main() {
-    let env = crate::objects::ObjP::new(crate::objects::Object::Null);
+    let env = crate::ground::ground();
     loop {
         print!("> ");
         io::stdout().flush().expect("Couldn't flush");

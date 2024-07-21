@@ -8,7 +8,9 @@ pub enum EvalError {
     #[allow(unused)] ImproperList(ObjP),
     #[allow(unused)] TooManyArgs(ObjP, ObjP),
     #[allow(unused)] NotEnoughArgs(ObjP, ObjP),
+    #[allow(unused)] DottedArgs(ObjP, ObjP),
     #[allow(unused)] NotCombiner(ObjP),
+    #[allow(unused)] NotCons(ObjP),
 }
 pub type EvalResult = Result<ObjP, EvalError>;
 
@@ -21,8 +23,8 @@ type FsubrFun = fn(&ObjP, &ObjP) -> EvalResult;
 // underlying content.
 // Fair, honestly, even if it makes it a bit weird for functions.
 // Also means it'll probably explode if you try comparing circular structures.
-#[derive(PartialEq, Eq)]
 #[derive(Debug)]
+#[derive(Eq, PartialEq)]
 pub enum Object {
     Cons { car: ObjP, cdr: ObjP },
     Null,
@@ -56,6 +58,11 @@ impl fmt::Display for Object {
             Object::Expr{..} => { write!(f, "#<EXPR>") }
         }
     }
+}
+
+// no actual package system right now, but == does string compare anyway
+pub fn intern(name: &str) -> ObjP {
+    ObjP::new(Object::Symbol(String::from(name)))
 }
 
 pub fn cons(car: &ObjP, cdr: &ObjP) -> ObjP {
