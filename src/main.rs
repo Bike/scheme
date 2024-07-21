@@ -64,6 +64,17 @@ enum ReadError {
     #[allow(unused)] Fixnum(std::num::ParseIntError),
 }
 
+impl std::convert::From<pest::error::Error<Rule>> for ReadError {
+    fn from(err: pest::error::Error<Rule>) -> Self {
+        ReadError::Parse(err)
+    }
+}
+impl std::convert::From<std::num::ParseIntError> for ReadError {
+    fn from(err: std::num::ParseIntError) -> Self {
+        ReadError::Fixnum(err)
+    }
+}
+
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -89,10 +100,7 @@ fn cons(car: Box<Object>, cdr: Box<Object>) -> Object {
 
 fn read(input: &str) -> Result<Object, ReadError> {
     let parse = SexpParser::parse(Rule::sexp, input);
-    match parse {
-        Ok(mut p) => { read_inner(p.next().unwrap()) }
-        Err(e) => { Err(ReadError::Parse(e)) }
-    }
+    Ok(read_inner(parse?.next().unwrap())?)
 }
 
 fn read_list(mut pairs: pest::iterators::Pairs<Rule>) -> Result<Object, ReadError> {
@@ -125,12 +133,7 @@ fn read_dotted_list(first: Object, mut pairs: pest::iterators::Pairs<Rule>)
 fn read_inner(parse: pest::iterators::Pair<Rule>) -> Result<Object, ReadError> {
     match parse.as_rule() {
         Rule::symbol => { Ok(Object::Symbol(String::from(parse.as_str()))) }
-        Rule::integer => {
-            match parse.as_str().parse() {
-                Ok(i) => { Ok(Object::Fixnum(i)) }
-                Err(e) => { Err(ReadError::Fixnum(e)) }
-            }
-        }
+        Rule::integer => { Ok(Object::Fixnum(parse.as_str().parse()?)) }
         Rule::boolean => { Ok(Object::Boolean(parse.as_str() == "#t")) }
         Rule::proper_list => { read_list(parse.into_inner()) }
         Rule::dotted_list => {
