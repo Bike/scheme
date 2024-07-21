@@ -3,12 +3,35 @@ use std::borrow::Borrow;
 use std::fmt;
 
 #[derive(Debug)]
+pub enum EvalError {
+    #[allow(unused)] Unbound(ObjP),
+    #[allow(unused)] ImproperList(ObjP),
+    #[allow(unused)] TooManyArgs(ObjP, ObjP),
+    #[allow(unused)] NotEnoughArgs(ObjP, ObjP),
+    #[allow(unused)] NotCombiner(ObjP),
+}
+pub type EvalResult = Result<ObjP, EvalError>;
+
+// args as a list
+type SubrFun = fn(&ObjP) -> EvalResult;
+// unevaluated arguments, environment
+type FsubrFun = fn(&ObjP, &ObjP) -> EvalResult;
+
+// Rust doesn't wanna do dumb pointer equality - == on Rcs checks the
+// underlying content.
+// Fair, honestly, even if it makes it a bit weird for functions.
+// Also means it'll probably explode if you try comparing circular structures.
+#[derive(PartialEq, Eq)]
+#[derive(Debug)]
 pub enum Object {
     Cons { car: ObjP, cdr: ObjP },
     Null,
     Fixnum(i64),
     Symbol(String),
     Boolean(bool),
+    Subr(SubrFun),
+    Fsubr(FsubrFun),
+    Expr { form: ObjP, lambda_list: ObjP, env: ObjP },
 }
 
 pub type ObjP = Rc<Object>;
@@ -28,10 +51,17 @@ impl fmt::Display for Object {
                     other => { write!(f, "({} . {})", *car, other) }
                 }
             }
+            Object::Subr(_f) => { write!(f, "#<SUBR>") }
+            Object::Fsubr(_f) => { write!(f, "#<FSUBR>") }
+            Object::Expr{..} => { write!(f, "#<EXPR>") }
         }
     }
 }
 
-pub fn cons(car: ObjP, cdr: ObjP) -> ObjP {
-    Rc::new(Object::Cons { car: car, cdr: cdr })
+pub fn cons(car: &ObjP, cdr: &ObjP) -> ObjP {
+    ObjP::new(Object::Cons { car: car.clone(), cdr: cdr.clone() })
+}
+
+pub fn acons(key: &ObjP, val: &ObjP, alist: &ObjP) -> ObjP {
+    cons(&cons(key, val), alist)
 }

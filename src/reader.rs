@@ -73,7 +73,7 @@ fn read_list(mut pairs: pest::iterators::Pairs<Rule>) -> Result<ObjP, ReadError>
     match pairs.next() {
         None => { Ok(ObjP::new(Object::Null)) },
         Some(p) => {
-            Ok(cons(read_inner(p)?, read_list(pairs)?))
+            Ok(cons(&read_inner(p)?, &read_list(pairs)?))
         }
     }
 }
@@ -88,8 +88,8 @@ fn read_dotted_list(first: ObjP, mut pairs: pest::iterators::Pairs<Rule>)
                 // this should always halt.
                 Rule::consing_dot => { read_dotted_list(first, pairs) }
                 _other => {
-                    Ok(cons(first,
-                            read_dotted_list(read_inner(p)?, pairs)?))
+                    Ok(cons(&first,
+                            &read_dotted_list(read_inner(p)?, pairs)?))
                 }
             }
         }
