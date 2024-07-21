@@ -50,7 +50,7 @@ fn main() {
         io::stdin()
             .read_line(&mut read)
             .expect("Failed to read line");
-        let parse = SexpParser::parse(Rule::sexp, read.as_str());
+        let parse = SexpParser::parse(Rule::sexp, &read);
         match parse {
             Ok(mut p) => {
                 print_parse(p.next().unwrap());
