@@ -1,8 +1,7 @@
 use pest::Parser;
 use pest_derive::Parser;
 
-use crate::objects::Object;
-use crate::objects::cons;
+use crate::objects::{Object, ObjP, cons};
 
 #[derive(Parser)]
 #[grammar = "sexp.pest"]
@@ -65,22 +64,22 @@ impl std::convert::From<std::num::ParseIntError> for ReadError {
     }
 }
 
-pub fn read(input: &str) -> Result<Object, ReadError> {
+pub fn read(input: &str) -> Result<ObjP, ReadError> {
     let parse = SexpParser::parse(Rule::sexp, input);
     Ok(read_inner(parse?.next().unwrap())?)
 }
 
-fn read_list(mut pairs: pest::iterators::Pairs<Rule>) -> Result<Object, ReadError> {
+fn read_list(mut pairs: pest::iterators::Pairs<Rule>) -> Result<ObjP, ReadError> {
     match pairs.next() {
-        None => { Ok(Object::Null) },
+        None => { Ok(ObjP::new(Object::Null)) },
         Some(p) => {
-            Ok(cons(Box::new(read_inner(p)?), Box::new(read_list(pairs)?)))
+            Ok(cons(read_inner(p)?, read_list(pairs)?))
         }
     }
 }
 
-fn read_dotted_list(first: Object, mut pairs: pest::iterators::Pairs<Rule>)
-                    -> Result<Object, ReadError> {
+fn read_dotted_list(first: ObjP, mut pairs: pest::iterators::Pairs<Rule>)
+                    -> Result<ObjP, ReadError> {
     match pairs.next() {
         None => { Ok(first) }
         Some(p) => {
@@ -89,19 +88,21 @@ fn read_dotted_list(first: Object, mut pairs: pest::iterators::Pairs<Rule>)
                 // this should always halt.
                 Rule::consing_dot => { read_dotted_list(first, pairs) }
                 _other => {
-                    Ok(cons(Box::new(first),
-                            Box::new(read_dotted_list(read_inner(p)?, pairs)?)))
+                    Ok(cons(first,
+                            read_dotted_list(read_inner(p)?, pairs)?))
                 }
             }
         }
     }
 }
 
-fn read_inner(parse: pest::iterators::Pair<Rule>) -> Result<Object, ReadError> {
+fn read_inner(parse: pest::iterators::Pair<Rule>) -> Result<ObjP, ReadError> {
     match parse.as_rule() {
-        Rule::symbol => { Ok(Object::Symbol(String::from(parse.as_str()))) }
-        Rule::integer => { Ok(Object::Fixnum(parse.as_str().parse()?)) }
-        Rule::boolean => { Ok(Object::Boolean(parse.as_str() == "#t")) }
+        Rule::symbol => {
+            Ok(ObjP::new(Object::Symbol(String::from(parse.as_str()))))
+        }
+        Rule::integer => { Ok(ObjP::new(Object::Fixnum(parse.as_str().parse()?))) }
+        Rule::boolean => { Ok(ObjP::new(Object::Boolean(parse.as_str() == "#t"))) }
         Rule::proper_list => { read_list(parse.into_inner()) }
         Rule::dotted_list => {
             let mut pairs = parse.into_inner();

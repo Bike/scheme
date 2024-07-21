@@ -1,14 +1,17 @@
+use std::rc::Rc;
 use std::borrow::Borrow;
 use std::fmt;
 
 #[derive(Debug)]
 pub enum Object {
-    Cons { car: Box<Object>, cdr: Box<Object> },
+    Cons { car: ObjP, cdr: ObjP },
     Null,
     Fixnum(i64),
     Symbol(String),
     Boolean(bool),
 }
+
+pub type ObjP = Rc<Object>;
 
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -29,6 +32,6 @@ impl fmt::Display for Object {
     }
 }
 
-pub fn cons(car: Box<Object>, cdr: Box<Object>) -> Object {
-    Object::Cons { car: car, cdr: cdr }
+pub fn cons(car: ObjP, cdr: ObjP) -> ObjP {
+    Rc::new(Object::Cons { car: car, cdr: cdr })
 }

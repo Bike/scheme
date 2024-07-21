@@ -13,7 +13,7 @@ fn main() {
             .read_line(&mut input)
             .expect("Failed to read line");
         match reader::read(&input) {
-            Ok(o) => { println!("{o}"); }
+            Ok(o) => { println!("{}", *o); }
             Err(e) => { println!("Read error! {e:?}"); }
         }
     }
