@@ -1,0 +1,13 @@
+sexp = _{ dotted_list | proper_list | atom }
+// different lists to make using the parse result hopefully easier
+dotted_list = { "(" ~ sexp+ ~ consing_dot ~ sexp ~ ")" }
+consing_dot = { "." } // customize later?
+proper_list = { "(" ~ sexp* ~ ")" }
+WHITESPACE = _{ WHITE_SPACE }
+// a bit wacky to make comments recurse properly
+COMMENT = _{ "#|" ~ (COMMENT | (!("|#" | "#|") ~ ANY))* ~ "|#" }
+atom = _{ symbol | integer | boolean }
+// terminals
+symbol = @{ LETTER ~ (LETTER | DASH_PUNCTUATION | NUMBER)* }
+integer = @{ "-"? ~ ASCII_DIGIT+ }
+boolean = @{ "#f" | "#t" }
