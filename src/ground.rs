@@ -50,32 +50,40 @@ fn args2(ll: &ObjP, args: &ObjP) -> Result<(ObjP, ObjP), EvalError> {
     }
 }
 
-fn fcons(args: &ObjP) -> EvalResult {
-    let (arg0, arg1) = args2(&cons(&intern("CAR"), &cons(&intern("CDR"), &ObjP::new(Object::Null))), args)?;
+fn fcons(ll: &ObjP, args: &ObjP) -> EvalResult {
+    let (arg0, arg1) = args2(ll, args)?;
     Ok(cons(&arg0, &arg1))
 }
-fn fcar(args: &ObjP) -> EvalResult {
-    let arg0 = args1(&cons(&intern("CONS"), &ObjP::new(Object::Null)), args)?;
+fn fcar(ll: &ObjP, args: &ObjP) -> EvalResult {
+    let arg0 = args1(ll, args)?;
     match arg0.borrow() {
         Object::Cons {car, ..} => { Ok(car.clone()) }
         _ => { Err(EvalError::NotCons(arg0)) }
     }
 }
-fn fcdr(args: &ObjP) -> EvalResult {
-    let arg0 = args1(&cons(&intern("CONS"), &ObjP::new(Object::Null)), args)?;
+fn fcdr(ll: &ObjP, args: &ObjP) -> EvalResult {
+    let arg0 = args1(ll, args)?;
     match arg0.borrow() {
         Object::Cons {car: _car, cdr} => { Ok(cdr.clone()) }
         _ => { Err(EvalError::NotCons(arg0)) }
     }
 }
 
+fn list1(arg0: &ObjP) -> ObjP { cons(arg0, &ObjP::new(Object::Null)) }
+fn list2(arg0: &ObjP, arg1: &ObjP) -> ObjP {
+    cons(arg0, &cons(arg1, &ObjP::new(Object::Null)))
+}
+
 pub fn ground() -> ObjP {
-    let pairs = [(intern("cons"), ObjP::new(Object::Subr(fcons))),
-                 (intern("car"), ObjP::new(Object::Subr(fcar))),
-                 (intern("cdr"), ObjP::new(Object::Subr(fcdr)))];
+    let cons_n = intern("cons");
+    let car_n = intern("car");
+    let cdr_n = intern("cdr");
+    let pairs = [(&cons_n, ObjP::new(Object::Subr(list2(&car_n, &cdr_n), fcons))),
+                 (&car_n, ObjP::new(Object::Subr(list1(&cons_n), fcar))),
+                 (&cdr_n, ObjP::new(Object::Subr(list1(&cons_n), fcdr)))];
     let mut env = ObjP::new(Object::Null);
     for (name, subr) in pairs {
-        env = acons(&name, &subr, &env)
+        env = acons(name, &subr, &env)
     }
     env
 }

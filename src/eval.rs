@@ -49,8 +49,8 @@ fn evlis(forms: &ObjP, env: &ObjP) -> EvalResult {
 fn combine(combiner: &ObjP, combinand: &ObjP, env: &ObjP)
            -> EvalResult {
     match combiner.borrow() {
-        Object::Subr(fun) => { fun(&evlis(combinand, env)?) }
-        Object::Fsubr(fun) => { fun(combinand, env) }
+        Object::Subr(ll, fun) => { fun(ll, &evlis(combinand, env)?) }
+        Object::Fsubr(ll, fun) => { fun(ll, combinand, env) }
         Object::Expr {form, lambda_list: ll, env} => {
             eval(form, &augment(env, ll, &evlis(combinand, env)?)?)
         }

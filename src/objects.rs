@@ -14,10 +14,10 @@ pub enum EvalError {
 }
 pub type EvalResult = Result<ObjP, EvalError>;
 
-// args as a list
-type SubrFun = fn(&ObjP) -> EvalResult;
-// unevaluated arguments, environment
-type FsubrFun = fn(&ObjP, &ObjP) -> EvalResult;
+// lambda list, args as a list
+type SubrFun = fn(&ObjP, &ObjP) -> EvalResult;
+// "lambda list", unevaluated arguments, environment
+type FsubrFun = fn(&ObjP, &ObjP, &ObjP) -> EvalResult;
 
 // Rust doesn't wanna do dumb pointer equality - == on Rcs checks the
 // underlying content.
@@ -31,8 +31,8 @@ pub enum Object {
     Fixnum(i64),
     Symbol(String),
     Boolean(bool),
-    Subr(SubrFun),
-    Fsubr(FsubrFun),
+    Subr(ObjP, SubrFun),
+    Fsubr(ObjP, FsubrFun),
     Expr { form: ObjP, lambda_list: ObjP, env: ObjP },
 }
 
@@ -53,8 +53,8 @@ impl fmt::Display for Object {
                     other => { write!(f, "({} . {})", *car, other) }
                 }
             }
-            Object::Subr(_f) => { write!(f, "#<SUBR>") }
-            Object::Fsubr(_f) => { write!(f, "#<FSUBR>") }
+            Object::Subr(..) => { write!(f, "#<SUBR>") }
+            Object::Fsubr(..) => { write!(f, "#<FSUBR>") }
             Object::Expr{..} => { write!(f, "#<EXPR>") }
         }
     }
