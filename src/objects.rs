@@ -1,6 +1,7 @@
 use std::rc::Rc;
 use std::borrow::Borrow;
 use std::fmt;
+use std::cell::RefCell;
 
 #[derive(Debug)]
 pub enum EvalError {
@@ -42,14 +43,23 @@ pub struct ObjP {
     object: Rc<Object>,
 }
 
+struct Arena {}
+
+thread_local! {
+    pub static ARENA: RefCell<Arena> = RefCell::new(Arena{});
+}
+
 impl ObjP {
     pub fn unwrap(&self) -> &Object {
         self.object.borrow()
     }
-    pub fn new(o : Object) -> Self {
+    fn anew(_arena: &Arena, o: Object) -> Self {
         Self {
             object: Rc::new(o)
         }
+    }
+    pub fn new(o : Object) -> Self {
+        ARENA.with(|a| Self::anew(&a.borrow(), o))
     }
 }
 
