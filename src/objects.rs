@@ -1,7 +1,6 @@
-use std::rc::Rc;
+use gc::{Gc, Trace, Finalize};
 use std::borrow::Borrow;
 use std::fmt;
-use std::cell::RefCell;
 
 #[derive(Debug)]
 pub enum EvalError {
@@ -21,45 +20,37 @@ type SubrFun = fn(&ObjP, &ObjP) -> EvalResult;
 // "lambda list", unevaluated arguments, environment
 type FsubrFun = fn(&ObjP, &ObjP, &ObjP) -> EvalResult;
 
-// Rust doesn't wanna do dumb pointer equality - == on Rcs checks the
+// Rust doesn't wanna do dumb pointer equality - == on Gcs checks the
 // underlying content.
 // Fair, honestly, even if it makes it a bit weird for functions.
 // Also means it'll probably explode if you try comparing circular structures.
 #[derive(Debug)]
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Trace, Finalize)]
 pub enum Object {
     Cons { car: ObjP, cdr: ObjP },
     Null,
     Fixnum(i64),
     Symbol(String),
     Boolean(bool),
-    Subr(ObjP, SubrFun),
-    Fsubr(ObjP, FsubrFun),
+    // GC doesn't know it can ignore function pointers, for some reason.
+    Subr(ObjP, #[unsafe_ignore_trace] SubrFun),
+    Fsubr(ObjP, #[unsafe_ignore_trace] FsubrFun),
     Expr { form: ObjP, lambda_list: ObjP, env: ObjP },
 }
 
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Trace, Finalize)]
 pub struct ObjP {
-    object: Rc<Object>,
-}
-
-struct Arena {}
-
-thread_local! {
-    pub static ARENA: RefCell<Arena> = RefCell::new(Arena{});
+    object: Gc<Object>,
 }
 
 impl ObjP {
     pub fn unwrap(&self) -> &Object {
         self.object.borrow()
     }
-    fn anew(_arena: &Arena, o: Object) -> Self {
-        Self {
-            object: Rc::new(o)
-        }
-    }
     pub fn new(o : Object) -> Self {
-        ARENA.with(|a| Self::anew(&a.borrow(), o))
+        Self {
+            object: Gc::new(o)
+        }
     }
 }
 
