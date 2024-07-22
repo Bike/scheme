@@ -54,6 +54,12 @@ impl ObjP {
     }
 }
 
+impl Borrow<Object> for ObjP {
+    fn borrow(&self) -> &Object {
+        self.unwrap()
+    }
+}
+
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -64,9 +70,17 @@ impl fmt::Display for Object {
                 if *t { write!(f, "#t") } else { write!(f, "#f") }
             }
             Object::Cons {car, cdr} => {
-                match cdr.unwrap() {
-                    Object::Null => { write!(f, "({})", car.unwrap()) }
-                    other => { write!(f, "({} . {})", car.unwrap(), other) }
+                write!(f, "({}", car)?;
+                let mut tail = cdr;
+                loop {
+                    match tail.unwrap() {
+                        Object::Null => { break write!(f, ")"); }
+                        Object::Cons {car, cdr} => {
+                            write!(f, " {}", car)?;
+                            tail = cdr;
+                        }
+                        _ => { break write!(f, " . {})", tail); }
+                    }
                 }
             }
             Object::Subr(..) => { write!(f, "#<SUBR>") }
