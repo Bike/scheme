@@ -1,8 +1,10 @@
-sexp = _{ dotted_list | proper_list | atom }
+sexp = _{ dotted_list | proper_list | atom | qsexp }
 // different lists to make using the parse result hopefully easier
 dotted_list = { "(" ~ sexp+ ~ consing_dot ~ sexp ~ ")" }
 consing_dot = { "." } // customize latoer?
 proper_list = { "(" ~ sexp* ~ ")" }
+qsexp = { quote ~ sexp } // quoted sexp
+quote = _{ "'" }
 WHITESPACE = _{ WHITE_SPACE }
 // a bit wacky to make comments recurse properly
 COMMENT = _{ "#|" ~ (COMMENT | (!("|#" | "#|") ~ ANY))* ~ "|#" }

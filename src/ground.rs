@@ -75,6 +75,11 @@ fn fif(ll: &ObjP, args: &ObjP, env: &ObjP) -> EvalResult {
     }
 }
 
+fn fquote(ll: &ObjP, args: &ObjP, _env: &ObjP) -> EvalResult {
+    let thing = args1(ll, args)?;
+    Ok(thing.clone())
+}
+
 fn flambda(ll: &ObjP, args: &ObjP, env: &ObjP) -> EvalResult {
     let (ll, body) = args2(ll, args)?;
     // As prophecied, I do not properly check the validity of the lambda list here.
@@ -111,8 +116,11 @@ pub fn ground() -> ObjP {
     let lambda_n = intern("lambda");
     let ll_n = intern("lambda-list");
     let body_n = intern("body");
+    let quote_n = intern("quote");
+    let thing_n = intern("thing");
     let fpairs = [(&if_n, ObjP::new(Object::Fsubr(list3(&condition_n, &then_n, &else_n),
                                                   fif))),
+                  (&quote_n, ObjP::new(Object::Fsubr(list1(&thing_n), fquote))),
                   (&lambda_n, ObjP::new(Object::Fsubr(list2(&ll_n, &body_n),
                                                       flambda)))];
     for (name, fsubr) in fpairs {

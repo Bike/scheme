@@ -109,6 +109,17 @@ fn read_inner(parse: pest::iterators::Pair<Rule>) -> Result<ObjP, ReadError> {
                 Some(p) => { Ok(read_dotted_list(read_inner(p)?, pairs)?) }
             }
         }
+        Rule::qsexp => {
+            let mut pairs = parse.into_inner();
+            match pairs.next() {
+                None => { panic!("Quotation with no elements"); }
+                Some(p) => { Ok(wrap_quote(read_inner(p)?)) }
+            }
+        }
         _unknown_term => { panic!("Can't read this thing"); }
     }
+}
+
+fn wrap_quote(o: ObjP) -> ObjP{
+    cons(&make_symbol("quote"), &cons(&o, &nil()))
 }

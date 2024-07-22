@@ -4,6 +4,7 @@ Supported:
 
 * Integers, but with no valid operations
 * `if` and `eq?`
+* `quote`, including apostrophe syntax.
 * abstraction (i.e. `lambda`)
 
 And that's it.
