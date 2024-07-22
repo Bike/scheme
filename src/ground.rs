@@ -2,7 +2,7 @@ use crate::objects::{EvalResult, EvalError, Object, ObjP, intern, cons, acons, m
 use crate::eval::eval;
 
 fn args0(ll: &ObjP, args: &ObjP) -> Result<(), EvalError> {
-    match args.unwrap() {
+    match *args.unwrap() {
         Object::Null => { Ok(()) }
         Object::Cons{..} => { Err(EvalError::TooManyArgs(ll.clone(),
                                                          args.clone())) }
@@ -10,9 +10,9 @@ fn args0(ll: &ObjP, args: &ObjP) -> Result<(), EvalError> {
     }
 }
 fn args1(ll: &ObjP, args: &ObjP) -> Result<ObjP, EvalError> {
-    match args.unwrap() {
+    match *args.unwrap() {
         Object::Null => { Err(EvalError::NotEnoughArgs(ll.clone(), args.clone())) }
-        Object::Cons {car, cdr} => {
+        Object::Cons {ref car, ref cdr} => {
             args0(ll, cdr)?;
             Ok(car.clone())
         }
@@ -20,21 +20,21 @@ fn args1(ll: &ObjP, args: &ObjP) -> Result<ObjP, EvalError> {
     }
 }
 fn args2(ll: &ObjP, args: &ObjP) -> Result<(ObjP, ObjP), EvalError> {
-    match args.unwrap() {
+    match *args.unwrap() {
         Object::Null => { Err(EvalError::NotEnoughArgs(ll.clone(), args.clone())) }
-        Object::Cons {car, cdr} => {
+        Object::Cons {ref car, ref cdr} => {
             let arg1 = args1(ll, cdr)?;
-            Ok((car.clone(), arg1.clone()))
+            Ok((car.clone(), arg1))
         }
         _ => { Err(EvalError::DottedArgs(ll.clone(), args.clone())) }
     }
 }
 fn args3(ll: &ObjP, args: &ObjP) -> Result<(ObjP, ObjP, ObjP), EvalError> {
-    match args.unwrap() {
+    match *args.unwrap() {
         Object::Null => { Err(EvalError::NotEnoughArgs(ll.clone(), args.clone())) }
-        Object::Cons {car, cdr} => {
+        Object::Cons {ref car, ref cdr} => {
             let (arg1, arg2) = args2(ll, cdr)?;
-            Ok((car.clone(), arg1.clone(), arg2.clone()))
+            Ok((car.clone(), arg1, arg2))
         }
         _ => { Err(EvalError::DottedArgs(ll.clone(), args.clone())) }
     }
@@ -46,15 +46,15 @@ fn fcons(ll: &ObjP, args: &ObjP) -> EvalResult {
 }
 fn fcar(ll: &ObjP, args: &ObjP) -> EvalResult {
     let arg0 = args1(ll, args)?;
-    match arg0.unwrap() {
-        Object::Cons {car, ..} => { Ok(car.clone()) }
+    match *arg0.unwrap() {
+        Object::Cons {ref car, ..} => { Ok(car.clone()) }
         _ => { Err(EvalError::NotCons(arg0)) }
     }
 }
 fn fcdr(ll: &ObjP, args: &ObjP) -> EvalResult {
     let arg0 = args1(ll, args)?;
-    match arg0.unwrap() {
-        Object::Cons {car: _car, cdr} => { Ok(cdr.clone()) }
+    match *arg0.unwrap() {
+        Object::Cons {car: ref _car, ref cdr} => { Ok(cdr.clone()) }
         _ => { Err(EvalError::NotCons(arg0)) }
     }
 }
@@ -67,9 +67,9 @@ fn feqv(ll: &ObjP, args: &ObjP) -> EvalResult {
 fn fif(ll: &ObjP, args: &ObjP, env: &ObjP) -> EvalResult {
     let (cond, thn, els) = args3(ll, args)?;
     let econd = eval(&cond, env)?;
-    match econd.unwrap() {
+    match *econd.unwrap() {
         Object::Boolean(t) => {
-            eval(if *t { &thn } else { &els }, env)
+            eval(if t { &thn } else { &els }, env)
         }
         _ => { Err(EvalError::NotBoolean(econd.clone())) }
     }

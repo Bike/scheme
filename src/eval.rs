@@ -1,9 +1,11 @@
 use crate::objects::{EvalResult, EvalError, Object, ObjP, cons, acons};
 
 pub fn eval(form: &ObjP, env: &ObjP) -> EvalResult {
-    match form.unwrap() {
-        Object::Cons {car: op, cdr: args} => { combine(&eval(op, env)?, args, env) }
-        Object::Symbol(_name) => { lookup(form, env) }
+    match *form.unwrap() {
+        Object::Cons {car: ref op, cdr: ref args} => {
+            combine(&eval(op, env)?, args, env)
+        }
+        Object::Symbol(ref _name) => { lookup(form, env) }
         _ => { Ok(form.clone()) } // self evaluating
     }
 }
@@ -12,11 +14,11 @@ pub fn eval(form: &ObjP, env: &ObjP) -> EvalResult {
 // Unlike assoc, panics on error (our env is an alist by construction so they
 //  should never happen) and returns the value rather than the pair.
 fn assocv(key: &ObjP, alist: &ObjP) -> Option<ObjP> {
-    match alist.unwrap() {
+    match *alist.unwrap() {
         Object::Null => { None }
-        Object::Cons {car, cdr} => {
+        Object::Cons {ref car, ref cdr} => {
             match car.unwrap() {
-                Object::Cons {car: caar, cdr: cdar} => {
+                Object::Cons {car: ref caar, cdr: ref cdar} => {
                     if key == caar {
                         Some(cdar.clone())
                     } else { assocv(key, cdr) }
@@ -36,8 +38,8 @@ fn lookup(name: &ObjP, env: &ObjP) -> EvalResult {
 }
 
 fn evlis(forms: &ObjP, env: &ObjP) -> EvalResult {
-    match forms.unwrap() {
-        Object::Cons {car, cdr} => {
+    match *forms.unwrap() {
+        Object::Cons {ref car, ref cdr} => {
             Ok(cons(&eval(car, env)?, &evlis(cdr, env)?))
         }
         Object::Null => { Ok(forms.clone()) }
@@ -47,10 +49,10 @@ fn evlis(forms: &ObjP, env: &ObjP) -> EvalResult {
 
 fn combine(combiner: &ObjP, combinand: &ObjP, env: &ObjP)
            -> EvalResult {
-    match combiner.unwrap() {
-        Object::Subr(ll, fun) => { fun(ll, &evlis(combinand, env)?) }
-        Object::Fsubr(ll, fun) => { fun(ll, combinand, env) }
-        Object::Expr {form, lambda_list: ll, env} => {
+    match *combiner.unwrap() {
+        Object::Subr(ref ll, ref fun) => { fun(ll, &evlis(combinand, env)?) }
+        Object::Fsubr(ref ll, ref fun) => { fun(ll, combinand, env) }
+        Object::Expr {ref form, lambda_list: ref ll, ref env} => {
             eval(form, &augment(env, ll, &evlis(combinand, env)?)?)
         }
         _ => { Err(EvalError::NotCombiner(combiner.clone())) }
@@ -62,25 +64,25 @@ fn augment(env: &ObjP, lambda_list: &ObjP, values: &ObjP) -> EvalResult {
     // but reports errors using the originals.
     fn augment_aux(oll: &ObjP, ovs: &ObjP,
                    ll: &ObjP, vs: &ObjP, env: &ObjP) -> EvalResult {
-        match ll.unwrap() {
+        match *ll.unwrap() {
             Object::Null => {
-                match vs.unwrap() {
+                match *vs.unwrap() {
                     Object::Null => { Ok(env.clone()) }
                     _ => { Err(EvalError::TooManyArgs(oll.clone(), ovs.clone())) }
                 }
             }
-            Object::Cons { car: lcar, cdr: lcdr } => {
+            Object::Cons { car: ref lcar, cdr: ref lcdr } => {
                 // Here we assume the lambda list has a symbol in its car.
                 // This could be checked at expr construction time.
                 // (Will I be too lazy to do so? Probably.)
-                match vs.unwrap() {
-                    Object::Cons { car: vcar, cdr: vcdr } => {
+                match *vs.unwrap() {
+                    Object::Cons { car: ref vcar, cdr: ref vcdr } => {
                         augment_aux(oll, ovs, lcdr, vcdr, &acons(lcar, vcar, env))
                     }
                     _ => { Err(EvalError::NotEnoughArgs(oll.clone(), ovs.clone())) }
                 }
             }
-            Object::Symbol(_) => { Ok(acons(ll, vs, env)) }
+            Object::Symbol(ref _n) => { Ok(acons(ll, vs, env)) }
             // invalid lambda list: should be impossible by construction
             _ => { panic!("Bad lambda list {}", oll) }
         }

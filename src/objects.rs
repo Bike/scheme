@@ -69,13 +69,13 @@ impl fmt::Display for Object {
             Object::Boolean(t) => {
                 if *t { write!(f, "#t") } else { write!(f, "#f") }
             }
-            Object::Cons {car, cdr} => {
+            Object::Cons {ref car, ref cdr} => {
                 write!(f, "({}", car)?;
                 let mut tail = cdr;
                 loop {
                     match tail.unwrap() {
                         Object::Null => { break write!(f, ")"); }
-                        Object::Cons {car, cdr} => {
+                        Object::Cons {ref car, ref cdr} => {
                             write!(f, " {}", car)?;
                             tail = cdr;
                         }
