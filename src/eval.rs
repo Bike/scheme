@@ -1,7 +1,8 @@
 use crate::objects::{EvalResult, EvalError, Object, ObjP, cons, acons};
+use std::borrow::Borrow;
 
 pub fn eval(form: &ObjP, env: &ObjP) -> EvalResult {
-    match *form.unwrap() {
+    match *form.borrow() {
         Object::Cons {car: ref op, cdr: ref args} => {
             combine(&eval(op, env)?, args, env)
         }
@@ -14,10 +15,10 @@ pub fn eval(form: &ObjP, env: &ObjP) -> EvalResult {
 // Unlike assoc, panics on error (our env is an alist by construction so they
 //  should never happen) and returns the value rather than the pair.
 fn assocv(key: &ObjP, alist: &ObjP) -> Option<ObjP> {
-    match *alist.unwrap() {
+    match *alist.borrow() {
         Object::Null => { None }
         Object::Cons {ref car, ref cdr} => {
-            match car.unwrap() {
+            match car.borrow() {
                 Object::Cons {car: ref caar, cdr: ref cdar} => {
                     if key == caar {
                         Some(cdar.clone())
@@ -38,7 +39,7 @@ fn lookup(name: &ObjP, env: &ObjP) -> EvalResult {
 }
 
 fn evlis(forms: &ObjP, env: &ObjP) -> EvalResult {
-    match *forms.unwrap() {
+    match *forms.borrow() {
         Object::Cons {ref car, ref cdr} => {
             Ok(cons(&eval(car, env)?, &evlis(cdr, env)?))
         }
@@ -49,7 +50,7 @@ fn evlis(forms: &ObjP, env: &ObjP) -> EvalResult {
 
 fn combine(combiner: &ObjP, combinand: &ObjP, env: &ObjP)
            -> EvalResult {
-    match *combiner.unwrap() {
+    match *combiner.borrow() {
         Object::Subr(ref ll, ref fun) => { fun(ll, &evlis(combinand, env)?) }
         Object::Fsubr(ref ll, ref fun) => { fun(ll, combinand, env) }
         Object::Expr {ref form, lambda_list: ref ll, ref env} => {
@@ -64,9 +65,9 @@ fn augment(env: &ObjP, lambda_list: &ObjP, values: &ObjP) -> EvalResult {
     // but reports errors using the originals.
     fn augment_aux(oll: &ObjP, ovs: &ObjP,
                    ll: &ObjP, vs: &ObjP, env: &ObjP) -> EvalResult {
-        match *ll.unwrap() {
+        match *ll.borrow() {
             Object::Null => {
-                match *vs.unwrap() {
+                match *vs.borrow() {
                     Object::Null => { Ok(env.clone()) }
                     _ => { Err(EvalError::TooManyArgs(oll.clone(), ovs.clone())) }
                 }
@@ -75,7 +76,7 @@ fn augment(env: &ObjP, lambda_list: &ObjP, values: &ObjP) -> EvalResult {
                 // Here we assume the lambda list has a symbol in its car.
                 // This could be checked at expr construction time.
                 // (Will I be too lazy to do so? Probably.)
-                match *vs.unwrap() {
+                match *vs.borrow() {
                     Object::Cons { car: ref vcar, cdr: ref vcdr } => {
                         augment_aux(oll, ovs, lcdr, vcdr, &acons(lcar, vcar, env))
                     }

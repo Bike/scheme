@@ -44,9 +44,6 @@ pub struct ObjP {
 }
 
 impl ObjP {
-    pub fn unwrap(&self) -> &Object {
-        self.object.borrow()
-    }
     pub fn new(o : Object) -> Self {
         Self {
             object: Gc::new(o)
@@ -56,7 +53,7 @@ impl ObjP {
 
 impl Borrow<Object> for ObjP {
     fn borrow(&self) -> &Object {
-        self.unwrap()
+        self.object.borrow()
     }
 }
 
@@ -64,16 +61,16 @@ impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Object::Null => { write!(f, "()") }
-            Object::Fixnum(i) => { write!(f, "{}", i) }
-            Object::Symbol(s) => { write!(f, "{}", s) }
-            Object::Boolean(t) => {
+            Object::Fixnum(ref i) => { write!(f, "{}", i) }
+            Object::Symbol(ref s) => { write!(f, "{}", s) }
+            Object::Boolean(ref t) => {
                 if *t { write!(f, "#t") } else { write!(f, "#f") }
             }
             Object::Cons {ref car, ref cdr} => {
                 write!(f, "({}", car)?;
                 let mut tail = cdr;
                 loop {
-                    match tail.unwrap() {
+                    match *tail.borrow() {
                         Object::Null => { break write!(f, ")"); }
                         Object::Cons {ref car, ref cdr} => {
                             write!(f, " {}", car)?;
@@ -91,7 +88,8 @@ impl fmt::Display for Object {
 }
 impl fmt::Display for ObjP {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.unwrap().fmt(f)
+        let o : &Object = self.borrow(); // type annot req. to disambiguate borrow
+        o.fmt(f)
     }
 }
 

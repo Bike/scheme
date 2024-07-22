@@ -1,8 +1,9 @@
 use crate::objects::{EvalResult, EvalError, Object, ObjP, intern, cons, acons, make_bool};
 use crate::eval::eval;
+use std::borrow::Borrow;
 
 fn args0(ll: &ObjP, args: &ObjP) -> Result<(), EvalError> {
-    match *args.unwrap() {
+    match *args.borrow() {
         Object::Null => { Ok(()) }
         Object::Cons{..} => { Err(EvalError::TooManyArgs(ll.clone(),
                                                          args.clone())) }
@@ -10,7 +11,7 @@ fn args0(ll: &ObjP, args: &ObjP) -> Result<(), EvalError> {
     }
 }
 fn args1(ll: &ObjP, args: &ObjP) -> Result<ObjP, EvalError> {
-    match *args.unwrap() {
+    match *args.borrow() {
         Object::Null => { Err(EvalError::NotEnoughArgs(ll.clone(), args.clone())) }
         Object::Cons {ref car, ref cdr} => {
             args0(ll, cdr)?;
@@ -20,7 +21,7 @@ fn args1(ll: &ObjP, args: &ObjP) -> Result<ObjP, EvalError> {
     }
 }
 fn args2(ll: &ObjP, args: &ObjP) -> Result<(ObjP, ObjP), EvalError> {
-    match *args.unwrap() {
+    match *args.borrow() {
         Object::Null => { Err(EvalError::NotEnoughArgs(ll.clone(), args.clone())) }
         Object::Cons {ref car, ref cdr} => {
             let arg1 = args1(ll, cdr)?;
@@ -30,7 +31,7 @@ fn args2(ll: &ObjP, args: &ObjP) -> Result<(ObjP, ObjP), EvalError> {
     }
 }
 fn args3(ll: &ObjP, args: &ObjP) -> Result<(ObjP, ObjP, ObjP), EvalError> {
-    match *args.unwrap() {
+    match *args.borrow() {
         Object::Null => { Err(EvalError::NotEnoughArgs(ll.clone(), args.clone())) }
         Object::Cons {ref car, ref cdr} => {
             let (arg1, arg2) = args2(ll, cdr)?;
@@ -46,14 +47,14 @@ fn fcons(ll: &ObjP, args: &ObjP) -> EvalResult {
 }
 fn fcar(ll: &ObjP, args: &ObjP) -> EvalResult {
     let arg0 = args1(ll, args)?;
-    match *arg0.unwrap() {
+    match *arg0.borrow() {
         Object::Cons {ref car, ..} => { Ok(car.clone()) }
         _ => { Err(EvalError::NotCons(arg0)) }
     }
 }
 fn fcdr(ll: &ObjP, args: &ObjP) -> EvalResult {
     let arg0 = args1(ll, args)?;
-    match *arg0.unwrap() {
+    match *arg0.borrow() {
         Object::Cons {car: ref _car, ref cdr} => { Ok(cdr.clone()) }
         _ => { Err(EvalError::NotCons(arg0)) }
     }
@@ -67,7 +68,7 @@ fn feqv(ll: &ObjP, args: &ObjP) -> EvalResult {
 fn fif(ll: &ObjP, args: &ObjP, env: &ObjP) -> EvalResult {
     let (cond, thn, els) = args3(ll, args)?;
     let econd = eval(&cond, env)?;
-    match *econd.unwrap() {
+    match *econd.borrow() {
         Object::Boolean(t) => {
             eval(if t { &thn } else { &els }, env)
         }
